@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">我的第一个应用</string>
+    <string name="app_name">文件同步助手</string>
     <string name="user_name">Name</string>
     <string name="name_hint">Please input your name</string>
     <string name="password">Password</string>
