@@ -32,11 +32,11 @@ public class MainActivity extends Activity {
         public void onClick(View view){                        //实现方法
             // TODO Auto-generated method stub
             switch (view.getId()) {
-                case R.id.btn1:
+                case R.id.btn2:
                     Toast.makeText(MainActivity.this, "This is Button 111", Toast.LENGTH_SHORT).show();
                     break;
 
-                case R.id.btn2:
+                case R.id.btn1:
                     // TODO Auto-generated method stub
                     //创建需要对应目标Activity的intent
                     Intent intent=new Intent(MainActivity.this,MainActivity2.class);
