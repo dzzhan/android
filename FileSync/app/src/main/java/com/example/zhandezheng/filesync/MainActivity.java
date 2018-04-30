@@ -1,6 +1,8 @@
 package com.example.zhandezheng.filesync;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.io.*;
 
@@ -20,14 +22,67 @@ import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewDebug;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 import android.widget.TextView;
 import android.Manifest;
 import static android.support.v4.app.ActivityCompat.*;
+
+class FileListAdapter extends BaseAdapter {
+
+    private List<String> stuList;
+    private LayoutInflater inflater;
+
+    public FileListAdapter() {
+    }
+
+    public FileListAdapter(List<String> stuList, Context context) {
+        this.stuList = stuList;
+        this.inflater = LayoutInflater.from(context);
+    }
+
+    @Override
+    public int getCount() {
+        return stuList == null ? 0 : stuList.size();
+    }
+
+    @Override
+    public String getItem(int position) {
+        return stuList.get(position);
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
+
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+        //加载布局为一个视图
+        View view = inflater.inflate(R.layout.file_item_layout,null);
+        if (view == null) {
+            Log.w("Warning", "get view failed!");
+            return null;
+        }
+        String student = getItem(position);
+        Log.i("Info",student);
+        //在view视图中查找id为image_photo的控件
+        TextView tv_name = (TextView) view.findViewById(R.id.file_name);
+        if (tv_name == null)
+        {
+            Log.w("Warning","find tv_name failed!");
+            return  view;
+        }
+        tv_name.setText(student);
+        return view;
+    }
+}
 
 public class MainActivity extends Activity {
 
@@ -120,6 +175,7 @@ public class MainActivity extends Activity {
         //检测读写权限
         PermisionUtils.verifyStoragePermissions(this);
         String strSDCardPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath().toString() +"/Camera";
+        this.filePath.setText(strSDCardPath);
         Log.i("SDCardPath",strSDCardPath);
         File[] fileList = getFiles(strSDCardPath);
         if (null == fileList)
@@ -127,10 +183,18 @@ public class MainActivity extends Activity {
             Log.i("Warning", "Get file failed!");
             return;
         }
+
+        List<String> vFileList = new ArrayList<>();
         for (int i = 0; i < fileList.length; i++)
         {
-            Log.i("Info", fileList[i].getAbsolutePath());
+            if (fileList[i].getName().endsWith(".mp4") || fileList[i].getName().endsWith(".jpg")) {
+                Log.i("Info", fileList[i].getAbsolutePath());
+                vFileList.add(fileList[i].getName());
+            }
         }
+
+        FileListAdapter fileListAdpt = new FileListAdapter(vFileList, MainActivity.this);
+        this.fileList.setAdapter(fileListAdpt);
     }
 
     public String getRealPathFromURI(Uri contentUri) {
