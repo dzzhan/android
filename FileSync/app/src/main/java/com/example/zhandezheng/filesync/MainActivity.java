@@ -34,6 +34,11 @@ import android.widget.TextView;
 import android.Manifest;
 import static android.support.v4.app.ActivityCompat.*;
 
+import java.net.MalformedURLException;
+import jcifs.smb.SmbException;
+import jcifs.smb.SmbFile;
+import jcifs.smb.SmbFileInputStream;
+
 class FileListAdapter extends BaseAdapter {
 
     private List<String> stuList;
@@ -84,6 +89,125 @@ class FileListAdapter extends BaseAdapter {
     }
 }
 
+ class Smb {
+     private static final String HEX_STRING = "0123456789ABCDEF";
+
+     /**
+      * 把中文字符转换为带百分号的浏览器编码
+      *
+      * @param word
+      * @return
+      */
+     public static String toBrowserCode(String word) {
+         byte[] bytes = word.getBytes();
+
+         //不包含中文，不做处理
+         if (bytes.length == word.length())
+             return word;
+
+         StringBuilder browserUrl = new StringBuilder();
+         String tempStr = "";
+
+         for (int i = 0; i < word.length(); i++) {
+             char currentChar = word.charAt(i);
+
+             //不需要处理
+             if ((int) currentChar <= 256) {
+
+                 if (tempStr.length() > 0) {
+                     byte[] cBytes = tempStr.getBytes();
+
+                     for (int j = 0; j < cBytes.length; j++) {
+                         browserUrl.append('%');
+                         browserUrl.append(HEX_STRING.charAt((cBytes[j] & 0xf0) >> 4));
+                         browserUrl.append(HEX_STRING.charAt((cBytes[j] & 0x0f) >> 0));
+                     }
+                     tempStr = "";
+                 }
+
+                 browserUrl.append(currentChar);
+             } else {
+                 //把要处理的字符，添加到队列中
+                 tempStr += currentChar;
+             }
+         }
+         return browserUrl.toString();
+     }
+
+    public static List<String> getFileNamesFromSmb(String smbMachine){
+        SmbFile file;
+        SmbFile[] files = null;
+        try {
+            Log.i("FileName=",smbMachine);
+            file = new SmbFile(toBrowserCode(smbMachine));
+            if (file == null) {
+                Log.i("FileName=", "1111");
+            }
+            else {
+                Log.i("FileName=", "5555");
+            }
+            if (file.isDirectory()) {
+                Log.i("FileName=","2222");
+            }
+            else if (file.isFile()) {
+                Log.i("FileName=","3333");
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (SmbException e) {
+            e.printStackTrace();
+        }
+        List<String> fileNames = new ArrayList<String>();
+        /*
+        for (SmbFile smbFile : files) {
+            if(smbFile.getName().indexOf(".EXP")!=-1){
+                fileNames.add(smbFile.getName());
+            }
+        }
+        */
+        return fileNames;
+    }
+    /**
+     * 从smbMachine读取文件并存储到localpath指定的路径
+     *
+     * @param smbMachine
+     *            共享机器的文件,如smb://xxx:xxx@10.108.23.112/myDocument/测试文本.txt,xxx:xxx是共享机器的用户名密码
+     * @param localpath
+     *            本地路径
+     * @return
+     */
+    public static File readFromSmb(String smbMachine,String localpath){
+        File localfile=null;
+        InputStream bis=null;
+        OutputStream bos=null;
+        List<File> files = new ArrayList<>();
+        try {
+            SmbFile rmifile = new SmbFile(smbMachine);
+            String filename=rmifile.getName();
+            bis=new BufferedInputStream(new SmbFileInputStream(rmifile));
+            localfile=new File(localpath+File.separator+filename);
+            bos=new BufferedOutputStream(new FileOutputStream(localfile));
+            int length=rmifile.getContentLength();
+            byte[] buffer=new byte[length];
+            bis.read(buffer);
+            bos.write(buffer);
+            try {
+                bos.close();
+                bis.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            files.add(localfile);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return localfile;
+    }
+    public static boolean removeFile(File file) {
+        return file.delete();
+    }
+}
+
 public class MainActivity extends Activity {
 
     Button btn1;
@@ -131,7 +255,8 @@ public class MainActivity extends Activity {
                     //intent=new Intent(MainActivity.this,MainActivity2.class);
                     //启动指定Activity并等待返回的结果，0是请求码。用于表示该请求
                     //startActivity(intent);
-                    ListFiles();
+                    //ListFiles();
+                    ListSMBFiles();
                     break;
                 default:
                     break;
@@ -168,6 +293,14 @@ public class MainActivity extends Activity {
         File stFile = new File(strPath);
         File[] files = stFile.listFiles();
         return files;
+    }
+
+    private void ListSMBFiles()
+    {
+        String strURL = "smb://192.168.3.1/荣耀立方/内置硬盘/public/zhan/";
+        List<String> vFiles = Smb.getFileNamesFromSmb(strURL);
+        //FileListAdapter fileListAdpt = new FileListAdapter(vFiles, MainActivity.this);
+        //this.fileList.setAdapter(fileListAdpt);
     }
 
     private void ListFiles()
