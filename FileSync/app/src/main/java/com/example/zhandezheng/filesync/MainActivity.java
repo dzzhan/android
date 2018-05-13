@@ -18,6 +18,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
@@ -135,36 +137,24 @@ class FileListAdapter extends BaseAdapter {
      }
 
     public static List<String> getFileNamesFromSmb(String smbMachine){
-        SmbFile file;
-        SmbFile[] files = null;
+        List<String> fileNames = new ArrayList<String>();
         try {
             Log.i("FileName=",smbMachine);
-            file = new SmbFile(toBrowserCode(smbMachine));
-            if (file == null) {
-                Log.i("FileName=", "1111");
-            }
-            else {
-                Log.i("FileName=", "5555");
-            }
-            if (file.isDirectory()) {
-                Log.i("FileName=","2222");
-            }
-            else if (file.isFile()) {
-                Log.i("FileName=","3333");
+            SmbFile smbFile = new SmbFile(smbMachine);
+            if(smbFile.isDirectory()){
+                Log.i("FileName=","is directory");
+                for (SmbFile file : smbFile.listFiles()){
+                    //Log.i("File:",file.getPath());
+                    fileNames.add(file.getName());
+                }
+            }else if(smbFile.isFile()){
+                Log.i("FileName=","is file");
             }
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (SmbException e) {
             e.printStackTrace();
         }
-        List<String> fileNames = new ArrayList<String>();
-        /*
-        for (SmbFile smbFile : files) {
-            if(smbFile.getName().indexOf(".EXP")!=-1){
-                fileNames.add(smbFile.getName());
-            }
-        }
-        */
         return fileNames;
     }
     /**
@@ -227,7 +217,6 @@ public class MainActivity extends Activity {
         btn2.setOnClickListener(new btListener());
 
         filePath = (TextView) findViewById(R.id.file_path);
-
         fileList = (ListView) findViewById(R.id.file_list);
     }
 
@@ -256,13 +245,52 @@ public class MainActivity extends Activity {
                     //启动指定Activity并等待返回的结果，0是请求码。用于表示该请求
                     //startActivity(intent);
                     //ListFiles();
-                    ListSMBFiles();
+                    //ListSMBFiles();
+
+                    // 开启一个子线程，进行网络操作，等待有返回结果，使用handler通知UI
+                    Log.i("MainActivity","Start networkTask");
+                    new Thread(networkTask).start();
                     break;
                 default:
                     break;
             }
         }
     }
+
+    Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            Bundle data = msg.getData();
+            String val = data.getString("value");
+            Log.i("mylog", "请求结果为-->" + val);
+            // TODO
+            // UI界面的更新等相关操作
+        }
+    };
+
+    /**
+     * 网络操作相关的子线程
+     */
+    Runnable networkTask = new Runnable() {
+
+        @Override
+        public void run() {
+
+            Log.i("networkTask", "running!");
+
+            // TODO
+            // 在这里进行 http request.网络请求相关操作
+            ListSMBFiles();
+
+            Message msg = new Message();
+            Bundle data = new Bundle();
+            data.putString("value", "请求结果");
+            msg.setData(data);
+
+            handler.sendMessage(msg);
+        }
+    };
 
     String path;
     @Override
@@ -297,6 +325,7 @@ public class MainActivity extends Activity {
 
     private void ListSMBFiles()
     {
+        PermisionUtils.verifyNetworkPermissions(this);
         String strURL = "smb://192.168.3.1/荣耀立方/内置硬盘/public/zhan/";
         List<String> vFiles = Smb.getFileNamesFromSmb(strURL);
         //FileListAdapter fileListAdpt = new FileListAdapter(vFiles, MainActivity.this);
