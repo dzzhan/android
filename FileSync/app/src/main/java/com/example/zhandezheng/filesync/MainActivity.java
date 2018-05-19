@@ -1,6 +1,7 @@
 package com.example.zhandezheng.filesync;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -145,10 +146,11 @@ class FileListAdapter extends BaseAdapter {
                 Log.i("FileName=","is directory");
                 for (SmbFile file : smbFile.listFiles()){
                     //Log.i("File:",file.getPath());
-                    fileNames.add(file.getName());
+                    fileNames.add(file.getPath());
                 }
             }else if(smbFile.isFile()){
                 Log.i("FileName=","is file");
+                fileNames.add(smbFile.getPath());
             }
         } catch (MalformedURLException e) {
             e.printStackTrace();
@@ -202,6 +204,7 @@ public class MainActivity extends Activity {
 
     Button btn1;
     Button btn2;
+    Button btn3;
     TextView filePath;
     ListView fileList;
 
@@ -215,6 +218,9 @@ public class MainActivity extends Activity {
 
         btn2 = (Button) findViewById(R.id.btn2);
         btn2.setOnClickListener(new btListener());
+
+        btn3 = (Button) findViewById(R.id.btn3);
+        btn3.setOnClickListener(new btListener());
 
         filePath = (TextView) findViewById(R.id.file_path);
         fileList = (ListView) findViewById(R.id.file_list);
@@ -251,21 +257,36 @@ public class MainActivity extends Activity {
                     Log.i("MainActivity","Start networkTask");
                     new Thread(networkTask).start();
                     break;
+                case R.id.btn3:
+                    // TODO Auto-generated method stub
+                    //创建需要对应目标Activity的intent
+                    //intent=new Intent(MainActivity.this,MainActivity2.class);
+                    //启动指定Activity并等待返回的结果，0是请求码。用于表示该请求
+                    //startActivity(intent);
+                    ListFiles();
+                    break;
                 default:
                     break;
             }
         }
     }
 
+    @SuppressLint("HandlerLeak")
     Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             Bundle data = msg.getData();
-            String val = data.getString("value");
-            Log.i("mylog", "请求结果为-->" + val);
+            List<String> vFileList = Arrays.asList(data.getStringArray("FileList"));
+            for (String file : vFileList)
+            {
+                Log.i("File:", file);
+            }
+
             // TODO
-            // UI界面的更新等相关操作
+            filePath.setText("Total found " + String.valueOf(vFileList.size()) + " files!");
+            FileListAdapter fileListAdpt = new FileListAdapter(vFileList, MainActivity.this);
+            fileList.setAdapter(fileListAdpt);
         }
     };
 
@@ -281,11 +302,11 @@ public class MainActivity extends Activity {
 
             // TODO
             // 在这里进行 http request.网络请求相关操作
-            ListSMBFiles();
+            List<String> vFileList = ListSMBFiles();
 
             Message msg = new Message();
             Bundle data = new Bundle();
-            data.putString("value", "请求结果");
+            data.putStringArray("FileList", vFileList.toArray(new String[vFileList.size()]));
             msg.setData(data);
 
             handler.sendMessage(msg);
@@ -323,11 +344,11 @@ public class MainActivity extends Activity {
         return files;
     }
 
-    private void ListSMBFiles()
+    private List<String> ListSMBFiles()
     {
         PermisionUtils.verifyNetworkPermissions(this);
-        String strURL = "smb://192.168.3.1/荣耀立方/内置硬盘/public/zhan/";
-        List<String> vFiles = Smb.getFileNamesFromSmb(strURL);
+        String strURL = "smb://192.168.3.1/荣耀立方/内置硬盘/public/zhan/照片/";
+        return Smb.getFileNamesFromSmb(strURL);
         //FileListAdapter fileListAdpt = new FileListAdapter(vFiles, MainActivity.this);
         //this.fileList.setAdapter(fileListAdpt);
     }
