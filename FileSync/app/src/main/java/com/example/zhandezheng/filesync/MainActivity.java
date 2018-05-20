@@ -140,16 +140,16 @@ class FileListAdapter extends BaseAdapter {
     public static List<String> getFileNamesFromSmb(String smbMachine){
         List<String> fileNames = new ArrayList<String>();
         try {
-            Log.i("FileName=",smbMachine);
+            //Log.i("FileName=",smbMachine);
             SmbFile smbFile = new SmbFile(smbMachine);
             if(smbFile.isDirectory()){
                 Log.i("FileName=","is directory");
                 for (SmbFile file : smbFile.listFiles()){
                     //Log.i("File:",file.getPath());
-                    fileNames.add(file.getPath());
+                    fileNames.addAll(getFileNamesFromSmb(file.getPath()));
                 }
             }else if(smbFile.isFile()){
-                Log.i("FileName=","is file");
+                //Log.i("FileName=","is file");
                 fileNames.add(smbFile.getPath());
             }
         } catch (MalformedURLException e) {
@@ -278,10 +278,10 @@ public class MainActivity extends Activity {
             super.handleMessage(msg);
             Bundle data = msg.getData();
             List<String> vFileList = Arrays.asList(data.getStringArray("FileList"));
-            for (String file : vFileList)
+            /*for (String file : vFileList)
             {
                 Log.i("File:", file);
-            }
+            }*/
 
             // TODO
             filePath.setText("Total found " + String.valueOf(vFileList.size()) + " files!");
